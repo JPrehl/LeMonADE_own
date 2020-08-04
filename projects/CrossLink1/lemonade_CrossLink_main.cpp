@@ -13,15 +13,15 @@
 #include <LeMonADE/utility/RandomNumberGenerators.h>
 #include <LeMonADE/utility/TaskManager.h>
 
-#include "UpdaterCreateCrossLink.h"
+#include "../../updater/UpdaterCreateCrossLink.h"
 
 int main(int argc, char* argv[])
 {
   int chainLength(10),nRuns(1);
   int boxX(64), boxY(64), boxZ(64);
-  double interaction(1.);
-  bool pX(0), pY(0),pZ(0);
-  std::string filename("crossLink.bfm") 
+  double nnInteraction(1.);
+  bool pX(1), pY(1),pZ(0);
+  std::string filename("crossLink.bfm"); 
 
   typedef LOKI_TYPELIST_4(
     FeatureMoleculesIO, 
@@ -38,8 +38,8 @@ int main(int argc, char* argv[])
 
 
   TaskManager taskManager;
-  taskManager.addUpdater(new UpdaterCreateCrossLink<IngredientsType>(ingredients, boxX, boxY, boxZ, pX, pY, pZ, chainLenth, interaction),0);
-  taskManager.addAnalyzer(new AnalyzerWriteBfmFile<IngredientsType>(filename,ingredients,AnalyzerWriteBfmFile<IngredientsType>::APPEND));
+  taskManager.addUpdater(new UpdaterCreateCrossLink<IngredientsType>(ingredients, boxX, boxY, boxZ, pX, pY, pZ, chainLength, nnInteraction),0);
+  taskManager.addAnalyzer(new AnalyzerWriteBfmFile<IngredientsType>(filename,ingredients,AnalyzerWriteBfmFile<IngredientsType>::OVERWRITE));
   
   taskManager.initialize();
   taskManager.run(nRuns);
