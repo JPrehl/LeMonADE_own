@@ -26,6 +26,7 @@ add_subdirectory(projects)
 # add_subdirectory(updater)
 # add_subdirectory(feature)
 
+include_directories("updater/")
 
 if (NOT DEFINED LEMONADE_TESTS )
     message("If you want to compile the tests use -DLEMONADE_TESTS=ON")
