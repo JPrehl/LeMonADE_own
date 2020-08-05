@@ -17,11 +17,12 @@
 
 int main(int argc, char* argv[])
 {
-  int chainLength(10),nRuns(1);
+  int chainLength(150),nRuns(1);
   int boxX(64), boxY(64), boxZ(64);
-  double nnInteraction(1.);
+  std::string modus("SPLIT");
+  double nnInteraction(5.);
   bool pX(1), pY(1),pZ(0);
-  std::string filename("crossLink.bfm"); 
+  std::string filename("crossLinkInit.bfm"); 
 
   typedef LOKI_TYPELIST_4(
     FeatureMoleculesIO, 
@@ -38,7 +39,7 @@ int main(int argc, char* argv[])
 
 
   TaskManager taskManager;
-  taskManager.addUpdater(new UpdaterCreateCrossLink<IngredientsType>(ingredients, boxX, boxY, boxZ, pX, pY, pZ, chainLength, nnInteraction),0);
+  taskManager.addUpdater(new UpdaterCreateCrossLink<IngredientsType>(ingredients, boxX, boxY, boxZ, pX, pY, pZ, modus, chainLength, nnInteraction),0);
   taskManager.addAnalyzer(new AnalyzerWriteBfmFile<IngredientsType>(filename,ingredients,AnalyzerWriteBfmFile<IngredientsType>::OVERWRITE));
   
   taskManager.initialize();

@@ -64,7 +64,9 @@ class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
   
   uint32_t boxX, boxY, boxZ;
   bool pX, pY, pZ;
+  
   uint32_t chainLength; 
+  std::string modus;
   double nnInteraction;
   
   int typAlO;
@@ -78,7 +80,7 @@ class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
   bool setLinearCoPolyChain();
   
 public:
-  UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, uint32_t chainLength_, double nnInteraction_);
+  UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, std::string modus_, uint32_t chainLength_, double nnInteraction_);
   
   virtual void initialize();
   virtual bool execute();
@@ -92,8 +94,8 @@ public:
  */
 
 template < class IngredientsType >
-UpdaterCreateCrossLink<IngredientsType>::UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, uint32_t chainLength_, double nnInteraction_):
-  BaseClass(ingredients_), boxX(boxX_), boxY(boxY_), boxZ(boxZ_), pX(pX_), pY(pY_), pZ(pZ_), chainLength(chainLength_), nnInteraction(nnInteraction_), isExecuted(false)
+UpdaterCreateCrossLink<IngredientsType>::UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, std::string modus_, uint32_t chainLength_, double nnInteraction_):
+  BaseClass(ingredients_), boxX(boxX_), boxY(boxY_), boxZ(boxZ_), pX(pX_), pY(pY_), pZ(pZ_), modus(modus_), chainLength(chainLength_), nnInteraction(nnInteraction_), isExecuted(false)
 {}
 
 
@@ -195,10 +197,21 @@ bool UpdaterCreateCrossLink<IngredientsType>::setLinearCoPolyChain(){
 
 	addSingleMonomer(typBlockA);	// Start-Monomer der Chain
 	int idStartMono = ingredients.getMolecules().size()-1; 
-	for (int l=0; l<chainLength-1; l++) {
-		
-		// Hier kommt die Komposition der Kette rein
-		addMonomerToParent(idStartMono+l,typBlockA); 
+	
+	if ("SPLIT" == modus) { 
+		//! Two different homo-polymers glued together
+		int mid=chainLength/2;
+		for (int l=0; l<mid; l++) {
+			addMonomerToParent(idStartMono+l,typBlockA); 
+		}
+		for (int l=mid; l<chainLength-1; l++) {
+			addMonomerToParent(idStartMono+l,typBlockB); 
+		}
+	} else {
+		//! default case (homo-polymer typ A)
+		for (int l=0; l<chainLength-1; l++) {
+			addMonomerToParent(idStartMono+l,typBlockB); 
+		}
 	}
 	
 	return true;

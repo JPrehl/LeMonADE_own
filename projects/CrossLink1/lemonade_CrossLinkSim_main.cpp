@@ -20,7 +20,7 @@
 
 int main(int argc, char* argv[])
 {
-  int nRuns(10), nSteps(10);
+  int nRuns(1000), nSteps(100);
   std::string filenameI("crossLinkInit.bfm"); 
   std::string filenameR("crossLinkRun.bfm");
 
