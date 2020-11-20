@@ -43,6 +43,9 @@ along with LeMonADE.  If not, see <http://www.gnu.org/licenses/>.
 #include <LeMonADE/updater/UpdaterAbstractCreate.h>
 #include <LeMonADE/utility/Vector3D.h>
 
+#include <LeMonADE/utility/RandomNumberGenerators.h>
+
+
 template<class IngredientsType>
 class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
 {
@@ -69,18 +72,33 @@ class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
   std::string modus;
   double nnInteraction;
   
+  /*	Number of different beads is set here 
+   * -> if needed more flexible: CHANGE HERE
+   */
   int typAlO;
   int typPA6;
   int typBlockA;
   int typBlockB;
   
+  int lBlockA;
+  int lBlockB;
+  
   bool isExecuted;
   
   bool setWallMonomer();
-  bool setLinearCoPolyChain();
-  
+  bool setLinearCoPolyChain();			// first verion
+  bool setLinearBlockCoPolyChain();
+										// several blocks of HomoPolymers
+  bool setLinearCoHomoPolyChain();		// 2 HomoPolymers glued together
+  bool setLinearStatCoPolyChain();		// statistical Polymer
+
+protected:
+	//! Random Number Generator (RNG)
+	RandomNumberGenerators randomNumbers;
+
+	
 public:
-  UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, std::string modus_, uint32_t chainLength_, double nnInteraction_);
+  UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, double nnInteraction_, std::string modus_, uint32_t chainLength_, uint32_t lBlockA_=0, uint32_t lBlockB_=0);
   
   virtual void initialize();
   virtual bool execute();
@@ -94,8 +112,8 @@ public:
  */
 
 template < class IngredientsType >
-UpdaterCreateCrossLink<IngredientsType>::UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, std::string modus_, uint32_t chainLength_, double nnInteraction_):
-  BaseClass(ingredients_), boxX(boxX_), boxY(boxY_), boxZ(boxZ_), pX(pX_), pY(pY_), pZ(pZ_), modus(modus_), chainLength(chainLength_), nnInteraction(nnInteraction_), isExecuted(false)
+UpdaterCreateCrossLink<IngredientsType>::UpdaterCreateCrossLink(IngredientsType& ingredients_, uint32_t boxX_, uint32_t boxY_, uint32_t boxZ_, bool pX_, bool pY_, bool pZ_, double nnInteraction_, std::string modus_, uint32_t chainLength_, uint32_t lBlockA_, uint32_t lBlockB_):
+  BaseClass(ingredients_), boxX(boxX_), boxY(boxY_), boxZ(boxZ_), pX(pX_), pY(pY_), pZ(pZ_), nnInteraction(nnInteraction_), modus(modus_), chainLength(chainLength_), lBlockA(lBlockA_),lBlockB(lBlockB_), isExecuted(false)
 {}
 
 
@@ -146,6 +164,8 @@ void UpdaterCreateCrossLink<IngredientsType>::initialize(){
 template < class IngredientsType >
 bool UpdaterCreateCrossLink<IngredientsType>::execute(){
 
+//	std::cout << "Updater CL: execute -- rng" << randomNumbers.r250_drand() << std::endl;
+	
 	if(!isExecuted) {
 //	std::cout << "Updater CL: execute" << std::endl;
 		setWallMonomer();
@@ -160,7 +180,7 @@ bool UpdaterCreateCrossLink<IngredientsType>::execute(){
 template < class IngredientsType >
 void UpdaterCreateCrossLink<IngredientsType>::cleanup(){
 
-	std::cout << "Updater CL: cleanup" << std::endl;
+	std::cout << "Updater CCL: cleanup" << std::endl;
 }
 
 /*****************************************************************************
@@ -192,29 +212,194 @@ bool UpdaterCreateCrossLink<IngredientsType>::setWallMonomer(){
 	return true;
 }
 
+
 template < class IngredientsType >
 bool UpdaterCreateCrossLink<IngredientsType>::setLinearCoPolyChain(){
 
-	addSingleMonomer(typBlockA);	// Start-Monomer der Chain
-	int idStartMono = ingredients.getMolecules().size()-1; 
-	
-	if ("SPLIT" == modus) { 
+	if ("COHOMO" == modus) { 
+
 		//! Two different homo-polymers glued together
-		int mid=chainLength/2;
-		for (int l=0; l<mid; l++) {
-			addMonomerToParent(idStartMono+l,typBlockA); 
-		}
-		for (int l=mid; l<chainLength-1; l++) {
-			addMonomerToParent(idStartMono+l,typBlockB); 
-		}
+		//! chemically feasible with different length ratios
+		setLinearCoHomoPolyChain();
+	} else if ("STAT" == modus) {
+		
+		//! Statistical Copolymer
+		setLinearStatCoPolyChain();
+	} else if ("BLOCK_1A" == modus || "BLOCK_1B" == modus) {
+		
+		//! Block-Co-Polymer with block lengths lBlockA, lBlockB
+		//! chemically hard to synthesize
+		setLinearBlockCoPolyChain();
 	} else {
-		//! default case (homo-polymer typ A)
+		
+		int typBlock;
+		if (0 == lBlockA) {
+			typBlock = typBlockB;
+		} else {
+			typBlock = typBlockA;
+		}
+
+		addSingleMonomer(typBlock);	// Start-Monomer der Chain
+		int idStartMono = ingredients.getMolecules().size()-1; 
+
 		for (int l=0; l<chainLength-1; l++) {
-			addMonomerToParent(idStartMono+l,typBlockB); 
+			addMonomerToParent(idStartMono+l,typBlock); 
 		}
 	}
 	
 	return true;
 }
+
+template < class IngredientsType >
+bool UpdaterCreateCrossLink<IngredientsType>::setLinearCoHomoPolyChain(){
+
+	std::cout << "Updater CCL: setLinearCoHomoPolyChain()" << std::endl;
+
+	int typB1;
+	int typB2;
+	//! Random definition of typBlock-order
+	if (randomNumbers.r250_drand() < 0.5) {
+		typB1 = typBlockA;
+		typB2 = typBlockB;
+	} else {
+		typB1 = typBlockB;
+		typB2 = typBlockA;
+	}
+	
+	// Block lengths not defined
+	int lBlock;
+	if (0 == lBlockA) {
+		lBlock = chainLength / 2;
+	} else {
+		lBlock = lBlockA;
+	}
+	
+	addSingleMonomer(typB1);	// Start-Monomer der Chain
+	int idStartMono = ingredients.getMolecules().size()-1; 
+	
+	//! Two different homo-polymers glued together
+	for (int l=0; l<lBlock-1; l++) {
+		addMonomerToParent(idStartMono+l,typB1); 
+	}
+	for (int l=lBlock-1; l<chainLength-1; l++) {
+		addMonomerToParent(idStartMono+l,typB2); 
+	}	
+	return true;
+}
+
+template < class IngredientsType >
+bool UpdaterCreateCrossLink<IngredientsType>::setLinearStatCoPolyChain(){
+
+	std::cout << "Updater CCL: setLinearStatCoPolyChain()" << std::endl;
+	//! Random order to beads 
+	int typBlock;
+
+	//! Random definition of Start-Monomer-Typ of Chain
+	if (randomNumbers.r250_drand() < 0.5) {
+		typBlock = typBlockA;
+	} else {
+		typBlock = typBlockB;
+	}
+	
+	addSingleMonomer(typBlock);	// Start-monomer der Chain
+	int idStartMono = ingredients.getMolecules().size()-1; 
+	
+	for (int l=0; l<chainLength-1; l++) {
+		if (randomNumbers.r250_drand() < 0.5) {
+			typBlock = typBlockA;
+		} else {
+			typBlock = typBlockB;
+		}
+		addMonomerToParent(idStartMono+l,typBlock); 
+	}
+	return true;
+}
+
+template < class IngredientsType >
+bool UpdaterCreateCrossLink<IngredientsType>::setLinearBlockCoPolyChain(){
+
+	std::cout << "Updater CCL: setLinearBlockCoPolyChain() - " << modus << std::endl;
+	//! 1) 	fixed length of lBlock for both types 
+	//!  a) repeated order (chemical resonable?)
+	//!  a) random order of blocks thus "random lengths"
+	//!  Req.: lBlock needs to be factor/divisor of chainLength
+	
+	
+	if ("BLOCK_1B" == modus) {
+		//! Random order to bead-blocks 
+		int typBlock;
+
+		//check for Requirement
+		if (0 != (chainLength % lBlockA)) {
+			throw std::runtime_error("UpdaterCreateCrossLink::setLinearBlockCoPolyChain(): lBlock not divisor of chainLength!");	
+		}
+		int lBlock = lBlockA;	 // for 1) lblockA == blockB
+
+		//! Random definition of Start-Monomer-Typ of Chain
+		if (randomNumbers.r250_drand() < 0.5) {
+			typBlock = typBlockA;
+		} else {
+			typBlock = typBlockB;
+		}
+		
+		addSingleMonomer(typBlock);	// Start-Monomer der Chain
+		int idStartMono = ingredients.getMolecules().size()-1; 
+		
+		for (int l=0; l<chainLength-1; l++) {
+			if ( 0 == (l+1) % lBlock ) {
+				std::cout << "UpdaterCreateCrossLink::setLinearBlockCoPolyChain(): Index=" << l+1 << ", lBlock=" << lBlock << std::endl;
+				if (randomNumbers.r250_drand() < 0.5) {
+					typBlock = typBlockA;
+				} else {
+					typBlock = typBlockB;
+				}
+			}
+			addMonomerToParent(idStartMono+l,typBlock); 
+		}
+		
+	} else {	// "BLOCK_1A" == modus // -> Default modus
+
+		//! Repeated order to bead-blocks
+		int typBlock, typB1, typB2;
+
+		//check for Requirement
+		if (0 != (chainLength % lBlockA)) {
+			throw std::runtime_error("UpdaterCreateCrossLink::setLinearBlockCoPolyChain(): lBlock not divisor of chainLength!");	
+		}
+		int lBlock = lBlockA;	 // for 1) lblockA == blockB
+
+		//! Random Block-Type-Order
+		if (randomNumbers.r250_drand() < 0.5) {
+			typB1 = typBlockA;
+			typB2 = typBlockB;
+		} else {
+			typB1 = typBlockB;
+			typB2 = typBlockA;
+		}
+		
+		typBlock=typB1;
+		addSingleMonomer(typBlock);	// Start-Monomer der Chain
+		int idStartMono = ingredients.getMolecules().size()-1; 
+		
+		for (int l=0; l<chainLength-1; l++) {
+			if ( (0 == (l+1) % lBlock) && (typBlock == typB1) ) {
+				std::cout << "UpdaterCreateCrossLink::setLinearBlockCoPolyChain(): Index=" << l+1 << ", lBlock=" << lBlock <<", typBlock=" << typBlock << std::endl;
+				typBlock = typB2;
+			} else {
+//				std::cout << "UpdaterCreateCrossLink::setLinearBlockCoPolyChain(): Index=" << l+1 << ", lBlock=" << lBlock <<", typBlock=" << typBlock << std::endl;
+				typBlock = typB1;
+			}
+			addMonomerToParent(idStartMono+l,typBlock); 
+		}
+	}	
+
+	//! OPEN TO DO IF WANTED/NEEDED
+	//! 2)	two different fixed length lBlockA, lBlockB
+	//!  a) repeated order
+	//!  b) random order
+	//!		Problem for both: How to fit in fixed chainLength
+	return true;
+}
+
 
 #endif /* LEMONADE_UPDATER_CREATE_CROSSLINK_H */
