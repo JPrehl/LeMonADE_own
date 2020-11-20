@@ -1,3 +1,9 @@
+/*	LeMonADE Simulation 
+ * 
+ *  Simulationsbox wird aus der Test-Simulation übernommen (UpdaterReadBfmFile)
+ *  Bead werden "einfach" zeitintegriert (UpdaterSimpleSimulator)
+ *  Ausgabe in Extradatei
+ */
 #include <iostream>
 #include <string>
 
