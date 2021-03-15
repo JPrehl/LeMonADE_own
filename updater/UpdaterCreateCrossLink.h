@@ -45,6 +45,8 @@ along with LeMonADE.  If not, see <http://www.gnu.org/licenses/>.
 
 #include <LeMonADE/utility/RandomNumberGenerators.h>
 
+#include <LeMonADE/updater/moves/MoveLocalSc.h>
+
 
 template<class IngredientsType>
 class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
@@ -86,6 +88,7 @@ class UpdaterCreateCrossLink: public UpdaterAbstractCreate<IngredientsType>
   bool isExecuted;
   
   bool setWallMonomer();
+  bool setRoughWallMonomer(int rq, int rmax=0);
   bool setLinearCoPolyChain();			// first verion
   bool setLinearBlockCoPolyChain();
 										// several blocks of HomoPolymers
@@ -168,7 +171,9 @@ bool UpdaterCreateCrossLink<IngredientsType>::execute(){
 	
 	if(!isExecuted) {
 //	std::cout << "Updater CL: execute" << std::endl;
-		setWallMonomer();
+		
+//		setWallMonomer();
+		setRoughWallMonomer(5);
 		setLinearCoPolyChain();
 		
 		isExecuted=true;
@@ -209,6 +214,87 @@ bool UpdaterCreateCrossLink<IngredientsType>::setWallMonomer(){
 			ingredients.modifyMolecules()[ingredients.getMolecules().size()-1].setMovableTag(false);
 		}
 	}
+	return true;
+}
+
+/**
+ * @param Rq = Abstand Min-Max der Oberfläche
+ * @param Rmax = Abweichungsflächen von Flächen-Mittellinie
+ **/
+template < class IngredientsType >
+bool UpdaterCreateCrossLink<IngredientsType>::setRoughWallMonomer(int rq, int rmax){
+
+	int anzX(boxX/2);
+	int anzY(boxY/2);
+	int zmin(0), zmax(boxZ-2);
+	// theortisch check auf Box-Größe%2==0
+	
+	int rqLowMax=rq-1;
+	int rqLowMin=0;
+	int rqUpMax=zmax;
+	int rqUpMin=zmax-rq;
+	
+	bool finished=false;
+	int toLong=1e8; // Abbruchkriterium für Wandbewegung to long
+	
+	for (int i=0; i<anzX; i++) {
+		for (int j=0; j<anzY; j++) {
+			int x = 2*i, y = 2*j; // Damit nur jeder zweite Gitterpunkt besetzt wird
+			//! Add PA6-monomer
+			addMonomerAtPosition(VectorInt3(x,y,zmin),typPA6);
+			//! changes the latest added Monomer to fixed
+//			ingredients.modifyMolecules()[ingredients.getMolecules().size()-1].setMovableTag(false);
+		}
+	}
+	int numLowWall=ingredients.getMolecules().size();
+	if(numLowWall != anzX*anzY){
+		throw std::runtime_error("setRoughWallMonomer: Number of Lower Wall Monomers not correct");
+	}
+	
+	for (int i=0; i<anzX; i++) {
+		for (int j=0; j<anzY; j++) {
+			int x = i*2, y = j*2;
+			//! Add first AlO-monomer
+			addMonomerAtPosition(VectorInt3(x,y,zmax),typAlO);
+			//! changes the latest added Monomer to fixed
+//			ingredients.modifyMolecules()[ingredients.getMolecules().size()-1].setMovableTag(false);
+		}
+	}
+	int numUpWall=ingredients.getMolecules().size()-numLowWall;
+	if(numUpWall != anzY*anzY) {
+		throw std::runtime_error("setRoughWallMonomer: Number of Upper Wall Monomers not correct");
+	}
+	
+	//! movement of wall monomers for roughness
+	int count = 0;
+	while(!finished && count < toLong){
+		MoveLocalSc moveWall;
+		
+		VectorInt3 dir(0,0,(randomNumbers.r250_rand32()%2)*2-1);
+		// random index [0,NumLowWall]
+		int index = randomNumbers.r250_rand32()%numLowWall;
+		moveWall.init(ingredients,index,dir);
+		if(moveWall.check(ingredients)// Überprüft allg. Bewegungsmöglichkeiten (Boxgröße, Doppelbelegung, etc.)
+			) {
+			/* Check auf Allg. Rq-Bereich */
+			if(ingredients.getMolecules()[index].getZ() + dir.getZ() < rqLowMin ||
+				ingredients.getMolecules()[index].getZ() + dir.getZ() < rqLowMax) {
+				moveWall.apply(ingredients);
+			}
+			// Check for Criteria: Rq, Rmax /*häufigkeit der Berechnung hängt an */
+			// if ( criteria() ) {
+			//	finished = true;
+			//}
+		}
+		count ++;
+		
+	}
+	
+	//! fixing of wall monomers
+	for (int i=0; i<ingredients.getMolecules().size(); i++) {
+		ingredients.modifyMolecules()[i].setMovableTag(false);	
+	}
+	
 	return true;
 }
 

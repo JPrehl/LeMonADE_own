@@ -23,7 +23,7 @@
 int main(int argc, char* argv[])
 {
   int chainLength(10),nRuns(1);
-  int boxX(64), boxY(64), boxZ(64);
+  int boxX(32), boxY(32), boxZ(16);
   std::string modus("COHOMO");				// definition of polymer structure
   double nnInteraction(5.);					// WW (repulsive)
   bool pX(1), pY(1),pZ(0);					// periodicity
