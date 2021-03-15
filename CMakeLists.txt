@@ -1,4 +1,8 @@
-cmake_minimum_required (VERSION 2.8)
+cmake_minimum_required (VERSION 2.9)
+
+project(LeMonADEPrehl)
+
+# set (LEMONADE_DIR "/home/localuser/Dokumente/code/LeMonADE/LeMonADE_install/")
 
 if (NOT DEFINED LEMONADE_DIR)
     message("LEMONADE_DIR is not provided.LEMONADE_DIR is the installation path of the main repo. If build fails, use -DLEMONADE_DIR=/path/to/LeMonADE/")
@@ -17,8 +21,8 @@ link_directories (${LEMONADE_LIBRARY_DIR})
 set (EXECUTABLE_OUTPUT_PATH "${CMAKE_BINARY_DIR}/bin")
 
 #define flags for the gcc compiler 
-set (CMAKE_CXX_FLAGS " -O3 -msse2 -mssse3 -std=c++11 -fexpensive-optimizations -std=c++11")
-set (CMAKE_C_FLAGS "-O3 -msse2 -mssse3 -std=c++11-fexpensive-optimizations -std=c++11")
+set (CMAKE_CXX_FLAGS " -O3 -msse2 -mssse3 -std=c++11 -fexpensive-optimizations -std=c++11 -Wno-return-type -Wno-deprecated -Wno-error=narrowing -Wno-narrowing")
+set (CMAKE_C_FLAGS "-O3 -msse2 -mssse3 -std=c++11-fexpensive-optimizations -std=c++11 -Wno-return-type -Wno-deprecated -Wno-error=narrowing -Wno-narrowing")
 
 #add the relevant subdirectories for doing fancy stuff 
 add_subdirectory(projects)
