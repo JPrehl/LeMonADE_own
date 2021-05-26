@@ -5,6 +5,8 @@
 
 #include <iostream>
 #include <string>
+#include <stdlib.h> //for atoi
+#include <unistd.h> //for getopt
 
 #include <LeMonADE/core/Ingredients.h>
 #include <LeMonADE/feature/FeatureMoleculesIO.h>
@@ -22,12 +24,62 @@
 
 int main(int argc, char* argv[])
 {
-  int chainLength(10),nRuns(1);
-  int boxX(32), boxY(32), boxZ(16);
+  // parameters sorted by type
+  std::string filename("crossLinkInit.bfm");// Output-File
   std::string modus("COHOMO");				// definition of polymer structure
+
   double nnInteraction(5.);					// WW (repulsive)
-  bool pX(1), pY(1),pZ(0);					// periodicity
-  std::string filename("crossLinkInit.bfm");// Output-File 
+
+  int chainLength(10);
+  int boxX(32), boxY(32), boxZ(16);
+
+  // peridocity not taken from command line -> periodic in xy, non periodic in z
+  bool pX(1), pY(1), pZ(0);					// periodicity
+
+  // utility for getopt
+  int option_char(0);
+  //read in options by getopt
+    while ((option_char = getopt (argc, argv, "f:m:i:c:x:y:z:h"))  != EOF){
+        switch (option_char)
+        {  
+            case 'f':
+                filename = std::string(optarg);
+                break;
+            case 'm':
+                modus = std::string(optarg);
+                break;
+            case 'i':
+                nnInteraction = atof(optarg);
+                break;
+            case 'c':
+                chainLength = atoi(optarg);
+                break;
+            case 'x':
+                boxX = atoi(optarg);
+                break;
+            case 'y':
+                boxY = atoi(optarg);
+                break;
+            case 'z':
+                boxZ = atoi(optarg);
+                break;
+            case 'h':
+                std::cerr << "Usage:\n" << argv[0] << "\n[-f filename] [-c chainlength] [-x boxX] [-y boxY] [-z boxZ] [-t torque] [-w wallSwitch (1: with wall, 0: periodic box)]\n";
+                return 0;
+            case '?':
+                printf("Unknown option: %c\n", optopt);
+                break;
+        }
+    }
+    // write out parameter list
+    std::cout << 
+    "filename = " << filename << 
+    "\nnnInteraction = " << nnInteraction <<
+    "\nchainlength = " << chainLength <<
+    "\nboxX = " << boxX <<
+    "\nboxY = " << boxY << 
+    "\nboxZ = " << boxZ << 
+    "\nmodus = " << modus <<std::endl;
 
   typedef LOKI_TYPELIST_4(
     FeatureMoleculesIO, 
@@ -51,7 +103,7 @@ int main(int argc, char* argv[])
   // -> Bfm-File wird ausgegeben
   
   taskManager.initialize();
-  taskManager.run(nRuns);
+  taskManager.run(1);
   taskManager.cleanup();
   
   // -> alles wird einmal durchlaufen um das System zu erstellen
